@@ -1,9 +1,24 @@
 import React from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import BrandHeader from "./BrandHeader";
+
+const menuByRole = {
+  jobseeker: [
+    { to: "/dashboard/jobseeker", label: "Dashboard" },
+    { to: "/applications", label: "Apply for Job" },
+    { to: "/tracking", label: "Application Tracking" },
+    { to: "/interviews", label: "Upcoming Interviews" }
+  ],
+  employer: [
+    { to: "/dashboard/employer", label: "Dashboard" },
+    { to: "/interviews", label: "Interview Schedule" }
+  ],
+  admin: [{ to: "/dashboard/admin", label: "Dashboard" }]
+};
 
 const Sidebar = () => {
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -11,14 +26,17 @@ const Sidebar = () => {
     navigate("/login");
   };
 
+  const menuItems = menuByRole[user?.role] || [];
+
   return (
     <aside className="sidebar">
-      <h1>Job Tracker</h1>
+      <BrandHeader className="sidebar-brand" />
       <nav>
-        <NavLink to="/dashboard">Dashboard</NavLink>
-        <NavLink to="/applications">Applications</NavLink>
-        <NavLink to="/interviews">Interviews</NavLink>
-        <NavLink to="/tracking">Tracking</NavLink>
+        {menuItems.map((item) => (
+          <NavLink key={item.to} to={item.to}>
+            {item.label}
+          </NavLink>
+        ))}
       </nav>
       <button className="btn btn-outline" onClick={handleLogout}>
         Logout

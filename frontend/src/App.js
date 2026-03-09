@@ -10,6 +10,7 @@ import ApplicationPage from "./pages/ApplicationPage";
 import TrackingPage from "./pages/TrackingPage";
 import InterviewPage from "./pages/InterviewPage";
 import Toast from "./components/Toast";
+import { getDashboardPathByRole } from "./utils/roles";
 
 const ProtectedRoute = ({ children }) => {
   const { user } = useAuth();
@@ -17,11 +18,17 @@ const ProtectedRoute = ({ children }) => {
   return children;
 };
 
-const RoleDashboard = ({ setToast }) => {
+const RoleRoute = ({ allowedRoles, children }) => {
   const { user } = useAuth();
-  if (user.role === "jobseeker") return <JobSeekerDashboard />;
-  if (user.role === "employer") return <EmployerDashboard setToast={setToast} />;
-  return <AdminDashboard setToast={setToast} />;
+  if (!user) return <Navigate to="/login" replace />;
+  if (!allowedRoles.includes(user.role)) return <Navigate to={getDashboardPathByRole(user.role)} replace />;
+  return children;
+};
+
+const DashboardRedirect = () => {
+  const { user } = useAuth();
+  if (!user) return <Navigate to="/login" replace />;
+  return <Navigate to={getDashboardPathByRole(user.role)} replace />;
 };
 
 const AppRoutes = () => {
@@ -36,7 +43,37 @@ const AppRoutes = () => {
           path="/dashboard"
           element={
             <ProtectedRoute>
-              <RoleDashboard setToast={setToast} />
+              <DashboardRedirect />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dashboard/jobseeker"
+          element={
+            <ProtectedRoute>
+              <RoleRoute allowedRoles={["jobseeker"]}>
+                <JobSeekerDashboard />
+              </RoleRoute>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dashboard/employer"
+          element={
+            <ProtectedRoute>
+              <RoleRoute allowedRoles={["employer"]}>
+                <EmployerDashboard setToast={setToast} />
+              </RoleRoute>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dashboard/admin"
+          element={
+            <ProtectedRoute>
+              <RoleRoute allowedRoles={["admin"]}>
+                <AdminDashboard setToast={setToast} />
+              </RoleRoute>
             </ProtectedRoute>
           }
         />
@@ -44,7 +81,9 @@ const AppRoutes = () => {
           path="/applications"
           element={
             <ProtectedRoute>
-              <ApplicationPage setToast={setToast} />
+              <RoleRoute allowedRoles={["jobseeker"]}>
+                <ApplicationPage setToast={setToast} />
+              </RoleRoute>
             </ProtectedRoute>
           }
         />
@@ -52,7 +91,9 @@ const AppRoutes = () => {
           path="/tracking"
           element={
             <ProtectedRoute>
-              <TrackingPage />
+              <RoleRoute allowedRoles={["jobseeker"]}>
+                <TrackingPage />
+              </RoleRoute>
             </ProtectedRoute>
           }
         />
@@ -60,7 +101,9 @@ const AppRoutes = () => {
           path="/interviews"
           element={
             <ProtectedRoute>
-              <InterviewPage />
+              <RoleRoute allowedRoles={["jobseeker", "employer"]}>
+                <InterviewPage />
+              </RoleRoute>
             </ProtectedRoute>
           }
         />

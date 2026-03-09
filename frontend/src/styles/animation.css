@@ -1,0 +1,96 @@
+.job-illustration {
+  width: min(100%, 560px);
+  height: auto;
+  display: block;
+}
+
+.job-illustration .float-soft {
+  animation: float 4.8s ease-in-out infinite;
+}
+
+.job-illustration .float-slow {
+  animation: float 6.2s ease-in-out infinite;
+}
+
+.job-illustration .icon-resume {
+  animation-delay: 0.2s;
+}
+
+.job-illustration .icon-bell,
+.job-illustration .icon-check-1,
+.job-illustration .icon-check-2 {
+  transform-origin: center;
+  animation-name: float, pulse;
+  animation-duration: 5.4s, 2.2s;
+  animation-timing-function: ease-in-out, ease-in-out;
+  animation-iteration-count: infinite, infinite;
+}
+
+.job-illustration .icon-bell {
+  animation-delay: 0.4s, 0s;
+}
+
+.job-illustration .icon-check-1 {
+  animation-delay: 0.8s, 0.7s;
+}
+
+.job-illustration .icon-check-2 {
+  animation-delay: 1.2s, 1.1s;
+}
+
+.job-illustration .arrow-rise {
+  animation: arrow-rise 4.6s ease-in-out infinite;
+}
+
+.job-illustration .scene-ring {
+  transform-origin: 320px 260px;
+  animation: slow-rotate 22s linear infinite;
+}
+
+@keyframes float {
+  0% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
+
+  100% {
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.72;
+  }
+}
+
+@keyframes arrow-rise {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.95;
+  }
+
+  50% {
+    transform: translateY(-8px);
+    opacity: 1;
+  }
+}
+
+@keyframes slow-rotate {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}

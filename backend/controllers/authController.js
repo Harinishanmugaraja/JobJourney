@@ -1,6 +1,7 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+const Role = require("../models/Role");
 
 const validRoles = ["jobseeker", "employer", "admin"];
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -13,7 +14,9 @@ const register = async (req, res) => {
       return res.status(400).json({ message: "All fields are required." });
     }
 
-    if (!emailRegex.test(email)) {
+    const normalizedEmail = email.toLowerCase().trim();
+
+    if (!emailRegex.test(normalizedEmail)) {
       return res.status(400).json({ message: "Invalid email format." });
     }
 
@@ -25,18 +28,26 @@ const register = async (req, res) => {
       return res.status(400).json({ message: "Invalid role." });
     }
 
-    const existing = await User.findOne({ email: email.toLowerCase() });
+    const existing = await User.findOne({ email: normalizedEmail });
     if (existing) {
       return res.status(409).json({ message: "User already exists." });
     }
 
+    const roleDoc = await Role.findOne({ role_name: role });
+    if (!roleDoc) {
+      return res.status(500).json({ message: "Role configuration missing." });
+    }
+
     const hashedPassword = await bcrypt.hash(password, 10);
-    const user = await User.create({
+
+    const created = await User.create({
       name,
-      email: email.toLowerCase(),
+      email: normalizedEmail,
       password: hashedPassword,
-      role
+      role_id: roleDoc._id
     });
+
+    const user = await User.findById(created._id).populate("role_id", "role_name");
 
     return res.status(201).json({
       message: "Registration successful.",
@@ -50,13 +61,21 @@ const register = async (req, res) => {
 const login = async (req, res) => {
   try {
     const { email, password } = req.body;
+
     if (!email || !password) {
       return res.status(400).json({ message: "Email and password are required." });
     }
 
-    const user = await User.findOne({ email: email.toLowerCase() });
+    const normalizedEmail = email.toLowerCase().trim();
+
+    const user = await User.findOne({ email: normalizedEmail }).populate("role_id", "role_name");
+
     if (!user) {
       return res.status(401).json({ message: "Invalid credentials." });
+    }
+
+    if (user.disabled) {
+      return res.status(403).json({ message: "Your account is disabled. Contact administrator." });
     }
 
     const match = await bcrypt.compare(password, user.password);
@@ -64,8 +83,10 @@ const login = async (req, res) => {
       return res.status(401).json({ message: "Invalid credentials." });
     }
 
+    const role = user.role_id?.role_name;
+
     const token = jwt.sign(
-      { id: user.id, role: user.role, email: user.email },
+      { id: user.id, role, email: user.email },
       process.env.JWT_SECRET || "super-secret-dev-key",
       { expiresIn: "12h" }
     );

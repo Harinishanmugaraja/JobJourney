@@ -1,36 +1,75 @@
 const Application = require("../models/Application");
+const ApplicationStatus = require("../models/ApplicationStatus");
+const Role = require("../models/Role");
 const User = require("../models/User");
 
 const validStatuses = ["Applied", "Under Review", "Interview Scheduled", "Selected", "Rejected"];
 const validResumeExtensions = [".pdf", ".doc", ".docx"];
 
 const hasValidResume = (resume) => {
-  const lower = resume.toLowerCase();
+  const lower = String(resume).toLowerCase();
   return validResumeExtensions.some((ext) => lower.endsWith(ext));
+};
+
+const toApplicationResponse = (doc) => {
+  const item = doc.toObject ? doc.toObject() : doc;
+
+  return {
+    id: item.id,
+    companyName: item.company_name,
+    jobRole: item.job_role,
+    status: item.status_id?.status_name || null,
+    resume: item.resume_url,
+    resumeUrl: item.resume_url,
+    applicationDate: item.applied_date,
+    userId: item.user_id?.id || null,
+    userRole: item.user_id?.role_id?.role_name || null
+  };
 };
 
 const createApplication = async (req, res) => {
   try {
-    const { companyName, jobRole, resume, applicationDate } = req.body;
+    const { companyName, jobRole, resume, resumeUrl, applicationDate } = req.body;
 
-    if (!companyName || !jobRole || !resume || !applicationDate) {
+    const resolvedResume = resumeUrl || resume;
+
+    if (!companyName || !jobRole || !resolvedResume || !applicationDate) {
       return res.status(400).json({ message: "All fields are required." });
     }
 
-    if (!hasValidResume(resume)) {
+    if (!hasValidResume(resolvedResume)) {
       return res.status(400).json({ message: "Resume must be PDF/DOC/DOCX." });
     }
 
-    const application = await Application.create({
-      userId: req.user.id,
-      companyName,
-      jobRole,
-      resume,
-      status: "Applied",
-      applicationDate
+    const applied = new Date(applicationDate);
+    if (Number.isNaN(applied.getTime())) {
+      return res.status(400).json({ message: "Invalid application date." });
+    }
+
+    const user = await User.findOne({ id: req.user.id });
+    if (!user) {
+      return res.status(401).json({ message: "Invalid user session." });
+    }
+
+    const defaultStatus = await ApplicationStatus.findOne({ status_name: "Applied" });
+    if (!defaultStatus) {
+      return res.status(500).json({ message: "Default status configuration missing." });
+    }
+
+    const created = await Application.create({
+      company_name: companyName,
+      job_role: jobRole,
+      status_id: defaultStatus._id,
+      resume_url: resolvedResume,
+      applied_date: applied,
+      user_id: user._id
     });
 
-    return res.status(201).json(application);
+    const application = await Application.findById(created._id)
+      .populate("status_id", "status_name")
+      .populate({ path: "user_id", select: "id", populate: { path: "role_id", select: "role_name" } });
+
+    return res.status(201).json(toApplicationResponse(application));
   } catch (error) {
     return res.status(500).json({ message: "Failed to create application.", error: error.message });
   }
@@ -39,37 +78,61 @@ const createApplication = async (req, res) => {
 const getApplications = async (req, res) => {
   try {
     const { status, company, date, role } = req.query;
-    let data = await Application.find();
+    const query = {};
 
     if (req.user.role === "jobseeker") {
-      data = data.filter((application) => application.userId === req.user.id);
-    }
-
-    if (req.user.role === "employer") {
-      data = data.filter((application) => application.status !== "Selected");
-    }
-
-    if (status) {
-      data = data.filter((application) => application.status === status);
+      const currentUser = await User.findOne({ id: req.user.id }).select("_id");
+      if (!currentUser) {
+        return res.status(401).json({ message: "Invalid user session." });
+      }
+      query.user_id = currentUser._id;
     }
 
     if (company) {
-      data = data.filter((application) =>
-        application.companyName.toLowerCase().includes(company.toLowerCase())
-      );
+      query.company_name = { $regex: company, $options: "i" };
     }
 
     if (date) {
-      data = data.filter((application) => application.applicationDate.slice(0, 10) === date);
+      const start = new Date(date);
+      if (Number.isNaN(start.getTime())) {
+        return res.status(400).json({ message: "Invalid date filter." });
+      }
+      const end = new Date(start);
+      end.setDate(end.getDate() + 1);
+      query.applied_date = { $gte: start, $lt: end };
+    }
+
+    if (status) {
+      const statusDoc = await ApplicationStatus.findOne({ status_name: status });
+      if (!statusDoc) {
+        return res.json([]);
+      }
+      query.status_id = statusDoc._id;
+    }
+
+    if (req.user.role === "employer" && !status) {
+      const selected = await ApplicationStatus.findOne({ status_name: "Selected" }).select("_id");
+      if (selected) {
+        query.status_id = { $ne: selected._id };
+      }
     }
 
     if (role) {
-      const users = await User.find({ role });
-      const ids = new Set(users.map((user) => user.id));
-      data = data.filter((application) => ids.has(application.userId));
+      const roleDoc = await Role.findOne({ role_name: role.toLowerCase() }).select("_id");
+      if (!roleDoc) {
+        return res.json([]);
+      }
+
+      const users = await User.find({ role_id: roleDoc._id }).select("_id");
+      query.user_id = { $in: users.map((item) => item._id) };
     }
 
-    return res.json(data);
+    const applications = await Application.find(query)
+      .sort({ applied_date: -1 })
+      .populate("status_id", "status_name")
+      .populate({ path: "user_id", select: "id", populate: { path: "role_id", select: "role_name" } });
+
+    return res.json(applications.map(toApplicationResponse));
   } catch (error) {
     return res.status(500).json({ message: "Failed to fetch applications.", error: error.message });
   }
@@ -77,26 +140,60 @@ const getApplications = async (req, res) => {
 
 const updateApplication = async (req, res) => {
   try {
-    const { id } = req.params;
-    const target = await Application.findById(id);
-    if (!target) {
+    const id = Number(req.params.id);
+    if (Number.isNaN(id)) {
+      return res.status(400).json({ message: "Invalid application id." });
+    }
+
+    const application = await Application.findOne({ id }).populate("user_id", "id");
+
+    if (!application) {
       return res.status(404).json({ message: "Application not found." });
     }
 
-    if (req.user.role === "jobseeker" && target.userId !== req.user.id) {
+    if (req.user.role === "jobseeker" && application.user_id?.id !== req.user.id) {
       return res.status(403).json({ message: "Access denied." });
     }
 
-    if (req.body.status && !validStatuses.includes(req.body.status)) {
-      return res.status(400).json({ message: "Invalid status." });
+    const payload = {};
+
+    if (req.body.companyName !== undefined) payload.company_name = req.body.companyName;
+    if (req.body.jobRole !== undefined) payload.job_role = req.body.jobRole;
+
+    if (req.body.resume !== undefined || req.body.resumeUrl !== undefined) {
+      const resolvedResume = req.body.resumeUrl || req.body.resume;
+      if (!hasValidResume(resolvedResume)) {
+        return res.status(400).json({ message: "Resume must be PDF/DOC/DOCX." });
+      }
+      payload.resume_url = resolvedResume;
     }
 
-    if (req.body.resume && !hasValidResume(req.body.resume)) {
-      return res.status(400).json({ message: "Resume must be PDF/DOC/DOCX." });
+    if (req.body.applicationDate !== undefined) {
+      const applied = new Date(req.body.applicationDate);
+      if (Number.isNaN(applied.getTime())) {
+        return res.status(400).json({ message: "Invalid application date." });
+      }
+      payload.applied_date = applied;
     }
 
-    const updated = await Application.updateById(id, req.body);
-    return res.json(updated);
+    if (req.body.status !== undefined) {
+      if (!validStatuses.includes(req.body.status)) {
+        return res.status(400).json({ message: "Invalid status." });
+      }
+      const statusDoc = await ApplicationStatus.findOne({ status_name: req.body.status });
+      if (!statusDoc) {
+        return res.status(500).json({ message: "Status configuration missing." });
+      }
+      payload.status_id = statusDoc._id;
+    }
+
+    await Application.updateOne({ _id: application._id }, payload);
+
+    const updated = await Application.findById(application._id)
+      .populate("status_id", "status_name")
+      .populate({ path: "user_id", select: "id", populate: { path: "role_id", select: "role_name" } });
+
+    return res.json(toApplicationResponse(updated));
   } catch (error) {
     return res.status(500).json({ message: "Failed to update application.", error: error.message });
   }
@@ -104,17 +201,22 @@ const updateApplication = async (req, res) => {
 
 const deleteApplication = async (req, res) => {
   try {
-    const { id } = req.params;
-    const target = await Application.findById(id);
-    if (!target) {
+    const id = Number(req.params.id);
+    if (Number.isNaN(id)) {
+      return res.status(400).json({ message: "Invalid application id." });
+    }
+
+    const application = await Application.findOne({ id }).populate("user_id", "id");
+
+    if (!application) {
       return res.status(404).json({ message: "Application not found." });
     }
 
-    if (req.user.role === "jobseeker" && target.userId !== req.user.id) {
+    if (req.user.role === "jobseeker" && application.user_id?.id !== req.user.id) {
       return res.status(403).json({ message: "Access denied." });
     }
 
-    await Application.deleteById(id);
+    await Application.deleteOne({ _id: application._id });
     return res.json({ message: "Application removed successfully." });
   } catch (error) {
     return res.status(500).json({ message: "Failed to delete application.", error: error.message });

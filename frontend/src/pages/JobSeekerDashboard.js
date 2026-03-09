@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../components/DashboardLayout";
-import DashboardCards from "../components/DashboardCards";
-import ApplicationTable from "../components/ApplicationTable";
-import NotificationPanel from "../components/NotificationPanel";
+import StatsWidget from "../components/StatsWidget";
+import RecentActivityTable from "../components/RecentActivityTable";
 import { getApplications } from "../services/applicationService";
 import { getInterviews } from "../services/interviewService";
 import Loader from "../components/Loader";
 
 const JobSeekerDashboard = () => {
+  const navigate = useNavigate();
   const [applications, setApplications] = useState([]);
   const [interviews, setInterviews] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -27,14 +28,47 @@ const JobSeekerDashboard = () => {
 
   const cards = [
     { label: "Total Applications", value: applications.length },
-    { label: "In Review", value: applications.filter((a) => a.status === "Under Review").length },
-    { label: "Interviews", value: interviews.length },
-    { label: "Selected", value: applications.filter((a) => a.status === "Selected").length }
+    { label: "Applied Jobs", value: applications.filter((a) => a.status === "Applied").length },
+    { label: "Interview Scheduled", value: applications.filter((a) => a.status === "Interview Scheduled").length },
+    {
+      label: "Selected / Rejected",
+      value: `${applications.filter((a) => a.status === "Selected").length} / ${
+        applications.filter((a) => a.status === "Rejected").length
+      }`
+    }
   ];
 
-  const notifications = applications
+  const recentApplications = applications
+    .slice()
+    .sort((a, b) => new Date(b.applicationDate) - new Date(a.applicationDate))
+    .slice(0, 6)
+    .map((item) => ({
+      id: item.id,
+      company: item.companyName,
+      role: item.jobRole,
+      appliedOn: new Date(item.applicationDate).toLocaleDateString(),
+      status: item.status
+    }));
+
+  const upcomingInterviews = interviews
+    .slice()
+    .sort((a, b) => new Date(a.interviewDate) - new Date(b.interviewDate))
     .slice(0, 5)
-    .map((item) => ({ message: `${item.companyName} - ${item.status}`, time: "Recent" }));
+    .map((item) => ({
+      id: item.id,
+      company: item.company,
+      date: new Date(item.interviewDate).toLocaleDateString(),
+      time: item.interviewTime,
+      link: item.meetingLink
+    }));
+
+  const statusSummary = ["Applied", "Under Review", "Interview Scheduled", "Selected", "Rejected"].map(
+    (status) => ({
+      id: status,
+      status,
+      count: applications.filter((item) => item.status === status).length
+    })
+  );
 
   return (
     <DashboardLayout title="Job Seeker Dashboard">
@@ -42,9 +76,42 @@ const JobSeekerDashboard = () => {
         <Loader />
       ) : (
         <>
-          <DashboardCards items={cards} />
-          <ApplicationTable data={applications.slice(0, 6)} />
-          <NotificationPanel items={notifications} />
+          <StatsWidget items={cards} />
+          <div className="actions-row actions-row-start">
+            <button className="btn" onClick={() => navigate("/applications")}>
+              Apply for Job
+            </button>
+          </div>
+          <RecentActivityTable
+            title="Recent Applications"
+            columns={[
+              { key: "company", label: "Company" },
+              { key: "role", label: "Role" },
+              { key: "appliedOn", label: "Applied On" },
+              { key: "status", label: "Status", type: "status" }
+            ]}
+            rows={recentApplications}
+            emptyMessage="No applications submitted yet."
+          />
+          <RecentActivityTable
+            title="Upcoming Interviews"
+            columns={[
+              { key: "company", label: "Company" },
+              { key: "date", label: "Date" },
+              { key: "time", label: "Time" },
+              { key: "link", label: "Meeting", type: "link", linkLabel: "Join" }
+            ]}
+            rows={upcomingInterviews}
+            emptyMessage="No interviews scheduled."
+          />
+          <RecentActivityTable
+            title="Application Status Tracking"
+            columns={[
+              { key: "status", label: "Status", type: "status" },
+              { key: "count", label: "Count" }
+            ]}
+            rows={statusSummary}
+          />
         </>
       )}
     </DashboardLayout>

@@ -1,32 +1,42 @@
-const { users, generateId } = require("../data/mockDb");
+const mongoose = require("mongoose");
+const getNextSequence = require("../utils/sequence");
 
-class User {
-  static async create(payload) {
-    const user = {
-      id: generateId("u"),
-      ...payload,
-      createdAt: new Date().toISOString()
-    };
-    users.push(user);
-    return user;
+const userSchema = new mongoose.Schema(
+  {
+    id: { type: Number, unique: true, index: true },
+    name: { type: String, required: true, trim: true },
+    email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+    password: { type: String, required: true },
+    role_id: { type: mongoose.Schema.Types.ObjectId, ref: "Role", required: true },
+    disabled: { type: Boolean, default: false },
+    created_at: { type: Date, default: Date.now }
+  },
+  {
+    collection: "users",
+    versionKey: false
   }
+);
 
-  static async findOne(filter) {
-    return users.find((user) => Object.keys(filter).every((key) => user[key] === filter[key]));
-  }
+userSchema.pre("save", async function assignId(next) {
+  if (!this.isNew || this.id) return next();
+  this.id = await getNextSequence("users");
+  return next();
+});
 
-  static async find(filter = {}) {
-    return users.filter((user) => Object.keys(filter).every((key) => user[key] === filter[key]));
-  }
+userSchema.statics.sanitize = (userDoc) => {
+  if (!userDoc) return null;
 
-  static async findById(id) {
-    return users.find((user) => user.id === id);
-  }
+  const user = userDoc.toObject ? userDoc.toObject() : userDoc;
+  const role = user.role_id?.role_name || user.role || null;
 
-  static sanitize(user) {
-    const { password, ...safeUser } = user;
-    return safeUser;
-  }
-}
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role,
+    disabled: Boolean(user.disabled),
+    createdAt: user.created_at
+  };
+};
 
-module.exports = User;
+module.exports = mongoose.model("User", userSchema);

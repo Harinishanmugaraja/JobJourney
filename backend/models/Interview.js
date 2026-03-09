@@ -1,30 +1,27 @@
-const { interviews, generateId } = require("../data/mockDb");
+const mongoose = require("mongoose");
+const getNextSequence = require("../utils/sequence");
 
-class Interview {
-  static async create(payload) {
-    const interview = {
-      id: generateId("i"),
-      ...payload,
-      createdAt: new Date().toISOString()
-    };
-    interviews.push(interview);
-    return interview;
+const interviewSchema = new mongoose.Schema(
+  {
+    id: { type: Number, unique: true, index: true },
+    interview_date: { type: Date, required: true },
+    mode_id: { type: mongoose.Schema.Types.ObjectId, ref: "InterviewMode", required: true },
+    location: { type: String, default: "" },
+    application_id: { type: mongoose.Schema.Types.ObjectId, ref: "JobApplication", required: true },
+    interview_time: { type: String, default: "" },
+    meeting_link: { type: String, default: "" },
+    created_by: { type: mongoose.Schema.Types.ObjectId, ref: "User" }
+  },
+  {
+    collection: "interviews",
+    versionKey: false
   }
+);
 
-  static async find(filter = {}) {
-    return interviews.filter((interview) => Object.keys(filter).every((key) => interview[key] === filter[key]));
-  }
+interviewSchema.pre("save", async function assignId(next) {
+  if (!this.isNew || this.id) return next();
+  this.id = await getNextSequence("interviews");
+  return next();
+});
 
-  static async findById(id) {
-    return interviews.find((interview) => interview.id === id);
-  }
-
-  static async updateById(id, updates) {
-    const index = interviews.findIndex((interview) => interview.id === id);
-    if (index < 0) return null;
-    interviews[index] = { ...interviews[index], ...updates };
-    return interviews[index];
-  }
-}
-
-module.exports = Interview;
+module.exports = mongoose.model("Interview", interviewSchema);
