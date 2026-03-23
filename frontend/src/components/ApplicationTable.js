@@ -1,5 +1,6 @@
 import React from "react";
 import StatusBadge from "./StatusBadge";
+import { NO_AVAILABLE_DETAILS_MESSAGE } from "../utils/messages";
 
 const ApplicationTable = ({ data, onStatusChange, canEditStatus }) => {
   return (
@@ -18,10 +19,14 @@ const ApplicationTable = ({ data, onStatusChange, canEditStatus }) => {
         <tbody>
           {data.map((item) => (
             <tr key={item.id}>
-              <td>{item.companyName}</td>
-              <td>{item.jobRole}</td>
-              <td>{item.resume}</td>
-              <td>{new Date(item.applicationDate).toLocaleDateString()}</td>
+              <td>{item.companyName || NO_AVAILABLE_DETAILS_MESSAGE}</td>
+              <td>{item.jobRole || NO_AVAILABLE_DETAILS_MESSAGE}</td>
+              <td>{item.resume || NO_AVAILABLE_DETAILS_MESSAGE}</td>
+              <td>
+                {item.applicationDate
+                  ? new Date(item.applicationDate).toLocaleDateString()
+                  : NO_AVAILABLE_DETAILS_MESSAGE}
+              </td>
               <td>
                 <StatusBadge status={item.status} />
               </td>
@@ -44,7 +49,7 @@ const ApplicationTable = ({ data, onStatusChange, canEditStatus }) => {
           ))}
           {!data.length && (
             <tr>
-              <td colSpan={canEditStatus ? 6 : 5}>No applications found.</td>
+              <td colSpan={canEditStatus ? 6 : 5}>{NO_AVAILABLE_DETAILS_MESSAGE}</td>
             </tr>
           )}
         </tbody>

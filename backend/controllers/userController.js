@@ -9,6 +9,7 @@ const getUsers = async (_req, res) => {
     const users = await User.find().populate("role_id", "role_name").sort({ created_at: -1 });
     return res.json(users.map((user) => User.sanitize(user)));
   } catch (error) {
+    console.error("[Users] getUsers failed:", error);
     return res.status(500).json({ message: "Failed to fetch users.", error: error.message });
   }
 };
@@ -27,6 +28,7 @@ const getUserById = async (req, res) => {
 
     return res.json(User.sanitize(user));
   } catch (error) {
+    console.error("[Users] getUserById failed:", error);
     return res.status(500).json({ message: "Failed to fetch user.", error: error.message });
   }
 };
@@ -67,6 +69,7 @@ const createUser = async (req, res) => {
     const user = await User.findById(created._id).populate("role_id", "role_name");
     return res.status(201).json(User.sanitize(user));
   } catch (error) {
+    console.error("[Users] createUser failed:", error);
     return res.status(500).json({ message: "Failed to create user.", error: error.message });
   }
 };
@@ -127,6 +130,7 @@ const updateUser = async (req, res) => {
     const updated = await User.findById(user._id).populate("role_id", "role_name");
     return res.json(User.sanitize(updated));
   } catch (error) {
+    console.error("[Users] updateUser failed:", error);
     return res.status(500).json({ message: "Failed to update user.", error: error.message });
   }
 };
@@ -153,6 +157,7 @@ const toggleUserStatus = async (req, res) => {
     const updated = await User.findById(user._id).populate("role_id", "role_name");
     return res.json(User.sanitize(updated));
   } catch (error) {
+    console.error("[Users] toggleUserStatus failed:", error);
     return res.status(500).json({ message: "Failed to update user.", error: error.message });
   }
 };
@@ -176,6 +181,7 @@ const deleteUser = async (req, res) => {
     await User.deleteOne({ _id: user._id });
     return res.json({ message: "User deleted successfully." });
   } catch (error) {
+    console.error("[Users] deleteUser failed:", error);
     return res.status(500).json({ message: "Failed to delete user.", error: error.message });
   }
 };

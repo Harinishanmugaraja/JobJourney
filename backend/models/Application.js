@@ -8,7 +8,11 @@ const applicationSchema = new mongoose.Schema(
     job_role: { type: String, required: true, trim: true },
     status_id: { type: mongoose.Schema.Types.ObjectId, ref: "ApplicationStatus", required: true },
     resume_url: { type: String, required: true, trim: true },
+    applicant_name: { type: String, trim: true },
+    applicant_email: { type: String, trim: true, lowercase: true },
+    cover_letter: { type: String, trim: true },
     applied_date: { type: Date, required: true },
+    job_id: { type: mongoose.Schema.Types.ObjectId, ref: "Job" },
     user_id: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true }
   },
   {

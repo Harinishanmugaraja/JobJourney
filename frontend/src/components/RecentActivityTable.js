@@ -1,7 +1,16 @@
 import React from "react";
 import StatusBadge from "./StatusBadge";
+import { NO_AVAILABLE_DETAILS_MESSAGE } from "../utils/messages";
 
-const RecentActivityTable = ({ title, columns, rows, emptyMessage = "No data available." }) => (
+const renderValue = (value) => {
+  if (typeof value === "string") {
+    return value.trim() || NO_AVAILABLE_DETAILS_MESSAGE;
+  }
+
+  return value ?? NO_AVAILABLE_DETAILS_MESSAGE;
+};
+
+const RecentActivityTable = ({ title, columns, rows, emptyMessage = NO_AVAILABLE_DETAILS_MESSAGE }) => (
   <section className="panel">
     <h3>{title}</h3>
     <div className="table-wrap">
@@ -28,13 +37,17 @@ const RecentActivityTable = ({ title, columns, rows, emptyMessage = "No data ava
                 if (column.type === "link") {
                   return (
                     <td key={`${row.id}-${column.key}`}>
-                      <a href={value} target="_blank" rel="noreferrer">
-                        {column.linkLabel || "Open"}
-                      </a>
+                      {typeof value === "string" && value.trim() ? (
+                        <a href={value} target="_blank" rel="noreferrer">
+                          {column.linkLabel || "Open"}
+                        </a>
+                      ) : (
+                        NO_AVAILABLE_DETAILS_MESSAGE
+                      )}
                     </td>
                   );
                 }
-                return <td key={`${row.id}-${column.key}`}>{value}</td>;
+                return <td key={`${row.id}-${column.key}`}>{renderValue(value)}</td>;
               })}
             </tr>
           ))}

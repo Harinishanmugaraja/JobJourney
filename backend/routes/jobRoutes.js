@@ -2,6 +2,7 @@ const express = require("express");
 const {
   createJob,
   getJobs,
+  getJobById,
   updateJob,
   deleteJob
 } = require("../controllers/jobController");
@@ -12,6 +13,7 @@ const router = express.Router();
 
 router.use(authMiddleware);
 router.get("/", getJobs);
+router.get("/:id", getJobById);
 router.post("/", roleMiddleware("employer", "admin"), createJob);
 router.put("/:id", roleMiddleware("employer", "admin"), updateJob);
 router.delete("/:id", roleMiddleware("employer", "admin"), deleteJob);

@@ -20,7 +20,15 @@ const ApplicationPage = ({ setToast }) => {
     setLoading(true);
     try {
       const { data } = await getApplications(params);
+      console.log("[ApplicationPage] Applications API response:", data);
       setApplications(data);
+      if (!data.length) {
+        console.warn("[ApplicationPage] No applications returned from backend.");
+      }
+    } catch (error) {
+      console.error("[ApplicationPage] Failed to load applications:", error);
+      setToast({ type: "error", message: "Unable to load applications." });
+      setApplications([]);
     } finally {
       setLoading(false);
     }
@@ -38,15 +46,21 @@ const ApplicationPage = ({ setToast }) => {
       return;
     }
 
-    await createApplication(form);
-    setToast({ type: "success", message: "Application submitted" });
-    setForm({
-      companyName: "",
-      jobRole: "",
-      resume: "",
-      applicationDate: new Date().toISOString().slice(0, 10)
-    });
-    load(filters);
+    try {
+      const { data } = await createApplication(form);
+      console.log("[ApplicationPage] Application created:", data);
+      setToast({ type: "success", message: "Application submitted" });
+      setForm({
+        companyName: "",
+        jobRole: "",
+        resume: "",
+        applicationDate: new Date().toISOString().slice(0, 10)
+      });
+      load(filters);
+    } catch (error) {
+      console.error("[ApplicationPage] Failed to create application:", error);
+      setToast({ type: "error", message: "Unable to submit application." });
+    }
   };
 
   const activeFilterCount = useMemo(
@@ -128,7 +142,6 @@ const ApplicationPage = ({ setToast }) => {
             <option value="">All Roles</option>
             <option value="jobseeker">Job Seeker</option>
             <option value="employer">Employer</option>
-            <option value="admin">Admin</option>
           </select>
           <button className="btn" onClick={() => load(filters)} type="button">
             Apply Filters

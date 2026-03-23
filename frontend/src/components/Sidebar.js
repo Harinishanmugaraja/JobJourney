@@ -6,7 +6,7 @@ import BrandHeader from "./BrandHeader";
 const menuByRole = {
   jobseeker: [
     { to: "/dashboard/jobseeker", label: "Dashboard" },
-    { to: "/applications", label: "Apply for Job" },
+    { to: "/jobs", label: "Apply for Jobs" },
     { to: "/tracking", label: "Application Tracking" },
     { to: "/interviews", label: "Upcoming Interviews" }
   ],

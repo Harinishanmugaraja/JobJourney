@@ -4,9 +4,10 @@ import StatsWidget from "../components/StatsWidget";
 import RecentActivityTable from "../components/RecentActivityTable";
 import ModalForm from "../components/ModalForm";
 import { getApplications, updateApplication } from "../services/applicationService";
-import { createInterview } from "../services/interviewService";
+import { createInterview, getInterviews } from "../services/interviewService";
 import { createJob, getJobs } from "../services/jobService";
 import Loader from "../components/Loader";
+import { NO_AVAILABLE_DETAILS_MESSAGE } from "../utils/messages";
 
 const EmployerDashboard = ({ setToast }) => {
   const [applications, setApplications] = useState([]);
@@ -24,7 +25,13 @@ const EmployerDashboard = ({ setToast }) => {
   const [jobForm, setJobForm] = useState({
     title: "",
     companyName: "",
-    location: ""
+    location: "",
+    jobType: "Full Time",
+    shortDescription: "",
+    description: "",
+    requiredSkills: "",
+    salaryRange: "",
+    applicationDeadline: ""
   });
 
   const loadData = async () => {
@@ -33,11 +40,29 @@ const EmployerDashboard = ({ setToast }) => {
       const [{ data: appData }, { data: jobsData }, { data: interviewData }] = await Promise.all([
         getApplications(),
         getJobs(),
-        getApplications({ status: "Interview Scheduled" })
+        getInterviews()
       ]);
+      console.log("[EmployerDashboard] Applications API response:", appData);
+      console.log("[EmployerDashboard] Jobs API response:", jobsData);
+      console.log("[EmployerDashboard] Interviews API response:", interviewData);
       setApplications(appData);
       setJobs(jobsData);
       setInterviews(interviewData);
+      if (!appData.length) {
+        console.warn("[EmployerDashboard] No applications returned from backend.");
+      }
+      if (!jobsData.length) {
+        console.warn("[EmployerDashboard] No jobs returned from backend.");
+      }
+      if (!interviewData.length) {
+        console.warn("[EmployerDashboard] No interviews returned from backend.");
+      }
+    } catch (error) {
+      console.error("[EmployerDashboard] Failed to load dashboard data:", error);
+      setToast({ type: "error", message: "Unable to load dashboard details." });
+      setApplications([]);
+      setJobs([]);
+      setInterviews([]);
     } finally {
       setLoading(false);
     }
@@ -48,27 +73,62 @@ const EmployerDashboard = ({ setToast }) => {
   }, []);
 
   const onStatusChange = async (id, status) => {
-    await updateApplication(id, { status });
-    setApplications((prev) => prev.map((item) => (item.id === id ? { ...item, status } : item)));
-    setToast({ type: "success", message: "Status updated" });
+    try {
+      const { data } = await updateApplication(id, { status });
+      console.log("[EmployerDashboard] Updated application:", data);
+      setApplications((prev) => prev.map((item) => (item.id === id ? { ...item, status: data.status } : item)));
+      setToast({ type: "success", message: "Status updated" });
+    } catch (error) {
+      console.error("[EmployerDashboard] Failed to update application status:", error);
+      setToast({ type: "error", message: "Unable to update application status." });
+    }
   };
 
   const schedule = async (e) => {
     e.preventDefault();
-    await createInterview(interviewForm);
-    setToast({ type: "success", message: "Interview scheduled" });
-    setOpenInterview(false);
-    setInterviewForm({ applicationId: "", interviewDate: "", interviewTime: "", meetingLink: "" });
-    loadData();
+    try {
+      const { data } = await createInterview(interviewForm);
+      console.log("[EmployerDashboard] Interview created:", data);
+      setToast({ type: "success", message: "Interview scheduled" });
+      setOpenInterview(false);
+      setInterviewForm({ applicationId: "", interviewDate: "", interviewTime: "", meetingLink: "" });
+      loadData();
+    } catch (error) {
+      console.error("[EmployerDashboard] Failed to schedule interview:", error);
+      setToast({ type: "error", message: "Unable to schedule interview." });
+    }
   };
 
   const postJob = async (e) => {
     e.preventDefault();
-    await createJob(jobForm);
-    setToast({ type: "success", message: "Job posted successfully" });
-    setOpenJob(false);
-    setJobForm({ title: "", companyName: "", location: "" });
-    loadData();
+    try {
+      const payload = {
+        ...jobForm,
+        requiredSkills: jobForm.requiredSkills
+          .split(",")
+          .map((skill) => skill.trim())
+          .filter(Boolean)
+      };
+      const { data } = await createJob(payload);
+      console.log("[EmployerDashboard] Job created:", data);
+      setToast({ type: "success", message: "Job posted successfully" });
+      setOpenJob(false);
+      setJobForm({
+        title: "",
+        companyName: "",
+        location: "",
+        jobType: "Full Time",
+        shortDescription: "",
+        description: "",
+        requiredSkills: "",
+        salaryRange: "",
+        applicationDeadline: ""
+      });
+      loadData();
+    } catch (error) {
+      console.error("[EmployerDashboard] Failed to create job:", error);
+      setToast({ type: "error", message: "Unable to post job." });
+    }
   };
 
   const cards = [
@@ -99,7 +159,9 @@ const EmployerDashboard = ({ setToast }) => {
       id: item.id,
       company: item.companyName,
       role: item.jobRole,
-      status: item.status
+      date: item.interviewDate ? new Date(item.interviewDate).toLocaleDateString() : NO_AVAILABLE_DETAILS_MESSAGE,
+      time: item.interviewTime || NO_AVAILABLE_DETAILS_MESSAGE,
+      link: item.meetingLink || ""
     }));
 
   return (
@@ -126,17 +188,19 @@ const EmployerDashboard = ({ setToast }) => {
               { key: "status", label: "Status", type: "status" }
             ]}
             rows={recentApplicants}
-            emptyMessage="No recent applicants."
+            emptyMessage={NO_AVAILABLE_DETAILS_MESSAGE}
           />
           <RecentActivityTable
             title="Interview Schedule"
             columns={[
               { key: "company", label: "Company" },
               { key: "role", label: "Role" },
-              { key: "status", label: "Status", type: "status" }
+              { key: "date", label: "Date" },
+              { key: "time", label: "Time" },
+              { key: "link", label: "Meeting", type: "link", linkLabel: "Join" }
             ]}
             rows={interviewSchedule}
-            emptyMessage="No interviews scheduled yet."
+            emptyMessage={NO_AVAILABLE_DETAILS_MESSAGE}
           />
           <section className="panel">
             <h3>Update Applicant Status</h3>
@@ -173,7 +237,7 @@ const EmployerDashboard = ({ setToast }) => {
                   ))}
                   {!applications.length && (
                     <tr>
-                      <td colSpan={4}>No applications available.</td>
+                      <td colSpan={4}>{NO_AVAILABLE_DETAILS_MESSAGE}</td>
                     </tr>
                   )}
                 </tbody>
@@ -245,6 +309,46 @@ const EmployerDashboard = ({ setToast }) => {
             value={jobForm.location}
             onChange={(e) => setJobForm({ ...jobForm, location: e.target.value })}
             required
+          />
+          <select
+            className="input"
+            value={jobForm.jobType}
+            onChange={(e) => setJobForm({ ...jobForm, jobType: e.target.value })}
+          >
+            <option value="Full Time">Full Time</option>
+            <option value="Internship">Internship</option>
+            <option value="Remote">Remote</option>
+          </select>
+          <input
+            className="input"
+            placeholder="Short Description"
+            value={jobForm.shortDescription}
+            onChange={(e) => setJobForm({ ...jobForm, shortDescription: e.target.value })}
+          />
+          <textarea
+            className="input"
+            placeholder="Description"
+            rows={4}
+            value={jobForm.description}
+            onChange={(e) => setJobForm({ ...jobForm, description: e.target.value })}
+          />
+          <input
+            className="input"
+            placeholder="Required Skills (comma separated)"
+            value={jobForm.requiredSkills}
+            onChange={(e) => setJobForm({ ...jobForm, requiredSkills: e.target.value })}
+          />
+          <input
+            className="input"
+            placeholder="Salary Range"
+            value={jobForm.salaryRange}
+            onChange={(e) => setJobForm({ ...jobForm, salaryRange: e.target.value })}
+          />
+          <input
+            className="input"
+            type="date"
+            value={jobForm.applicationDeadline}
+            onChange={(e) => setJobForm({ ...jobForm, applicationDeadline: e.target.value })}
           />
           <button className="btn" type="submit">
             Post Job

@@ -1,5 +1,5 @@
 import React from "react";
-import { formatRole } from "../utils/roles";
+import ProfileButton from "./ProfileButton";
 
 const Navbar = ({ title, user }) => {
   return (
@@ -8,7 +8,7 @@ const Navbar = ({ title, user }) => {
         <h2>{title}</h2>
         <p>Welcome, {user?.name || "User"}</p>
       </div>
-      <span className="role-chip">{formatRole(user?.role)}</span>
+      <ProfileButton user={user} />
     </header>
   );
 };

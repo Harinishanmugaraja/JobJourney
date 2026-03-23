@@ -3,7 +3,7 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const Role = require("../models/Role");
 
-const validRoles = ["jobseeker", "employer", "admin"];
+const validRoles = ["jobseeker", "employer"];
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const register = async (req, res) => {
@@ -25,7 +25,9 @@ const register = async (req, res) => {
     }
 
     if (!validRoles.includes(role)) {
-      return res.status(400).json({ message: "Invalid role." });
+      return res
+        .status(400)
+        .json({ message: "Only Job Seeker and Employer accounts can register." });
     }
 
     const existing = await User.findOne({ email: normalizedEmail });

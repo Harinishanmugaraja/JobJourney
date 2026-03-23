@@ -3,13 +3,13 @@
   <desc id="jobIllustrationDesc">A person using a laptop with floating job search and recruitment icons.</desc>
   <defs>
     <linearGradient id="blueGradientMain" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#38BDF8" />
-      <stop offset="55%" stop-color="#0EA5E9" />
-      <stop offset="100%" stop-color="#0369A1" />
+      <stop offset="0%" stop-color="var(--il-accent-1)" />
+      <stop offset="55%" stop-color="var(--il-accent-2)" />
+      <stop offset="100%" stop-color="var(--il-accent-3)" />
     </linearGradient>
     <linearGradient id="blueGradientSoft" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#7DD3FC" />
-      <stop offset="100%" stop-color="#0EA5E9" />
+      <stop offset="0%" stop-color="var(--il-accent-3)" />
+      <stop offset="100%" stop-color="var(--il-accent-2)" />
     </linearGradient>
     <filter id="softGlow" x="-40%" y="-40%" width="180%" height="180%">
       <feGaussianBlur stdDeviation="4" result="blur" />
@@ -26,7 +26,7 @@
 
   <g transform="translate(132 86)">
     <g class="floating-icon float-soft icon-resume">
-      <rect x="0" y="0" width="94" height="120" rx="14" fill="#041827" stroke="url(#blueGradientMain)" stroke-width="3" />
+      <rect x="0" y="0" width="94" height="120" rx="14" fill="var(--il-fill-main)" stroke="url(#blueGradientMain)" stroke-width="3" />
       <line x1="18" y1="34" x2="74" y2="34" stroke="url(#blueGradientSoft)" stroke-width="4" stroke-linecap="round" />
       <line x1="18" y1="56" x2="66" y2="56" stroke="url(#blueGradientSoft)" stroke-width="4" stroke-linecap="round" />
       <line x1="18" y1="78" x2="72" y2="78" stroke="url(#blueGradientSoft)" stroke-width="4" stroke-linecap="round" />
@@ -37,7 +37,7 @@
 
   <g transform="translate(476 120)">
     <g class="floating-icon float-slow icon-briefcase">
-      <rect x="0" y="24" width="104" height="66" rx="12" fill="#041827" stroke="url(#blueGradientMain)" stroke-width="3" />
+      <rect x="0" y="24" width="104" height="66" rx="12" fill="var(--il-fill-main)" stroke="url(#blueGradientMain)" stroke-width="3" />
       <path d="M36 24v-8c0-8 6-14 14-14h4c8 0 14 6 14 14v8" fill="none" stroke="url(#blueGradientSoft)" stroke-width="3" />
       <line x1="0" y1="55" x2="104" y2="55" stroke="url(#blueGradientSoft)" stroke-width="3" />
       <rect x="45" y="49" width="14" height="10" rx="3" fill="url(#blueGradientMain)" />
@@ -46,20 +46,20 @@
 
   <g transform="translate(496 250)">
     <g class="floating-icon float-soft icon-bell">
-      <path d="M42 76c0 8-6 14-14 14S14 84 14 76h28Zm-31-6v-17c0-12 7-21 17-25v-5c0-5 4-9 9-9s9 4 9 9v5c10 4 17 13 17 25v17l8 8H3l8-8Z" fill="#041827" stroke="url(#blueGradientMain)" stroke-width="3" filter="url(#softGlow)" />
+      <path d="M42 76c0 8-6 14-14 14S14 84 14 76h28Zm-31-6v-17c0-12 7-21 17-25v-5c0-5 4-9 9-9s9 4 9 9v5c10 4 17 13 17 25v17l8 8H3l8-8Z" fill="var(--il-fill-main)" stroke="url(#blueGradientMain)" stroke-width="3" filter="url(#softGlow)" />
     </g>
   </g>
 
   <g transform="translate(90 284)">
     <g class="floating-icon float-slow icon-check-1">
-      <circle cx="28" cy="28" r="24" fill="#041827" stroke="url(#blueGradientMain)" stroke-width="3" />
+      <circle cx="28" cy="28" r="24" fill="var(--il-fill-main)" stroke="url(#blueGradientMain)" stroke-width="3" />
       <path d="M16 28l8 8 14-15" fill="none" stroke="url(#blueGradientSoft)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
     </g>
   </g>
 
   <g transform="translate(454 340)">
     <g class="floating-icon float-soft icon-check-2">
-      <circle cx="24" cy="24" r="20" fill="#041827" stroke="url(#blueGradientMain)" stroke-width="3" />
+      <circle cx="24" cy="24" r="20" fill="var(--il-fill-main)" stroke="url(#blueGradientMain)" stroke-width="3" />
       <path d="M14 24l6 6 11-12" fill="none" stroke="url(#blueGradientSoft)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
     </g>
   </g>
@@ -76,14 +76,14 @@
     <path d="M60 246h258" stroke="url(#blueGradientMain)" stroke-width="5" stroke-linecap="round" />
     <path d="M178 246v-82" stroke="url(#blueGradientSoft)" stroke-width="5" stroke-linecap="round" />
 
-    <rect x="184" y="126" width="116" height="76" rx="10" fill="#051a2b" stroke="url(#blueGradientMain)" stroke-width="4" />
-    <rect x="200" y="142" width="84" height="44" rx="6" fill="#0b2a42" />
+    <rect x="184" y="126" width="116" height="76" rx="10" fill="var(--il-fill-soft)" stroke="url(#blueGradientMain)" stroke-width="4" />
+    <rect x="200" y="142" width="84" height="44" rx="6" fill="var(--il-screen)" />
     <line x1="206" y1="155" x2="276" y2="155" stroke="url(#blueGradientSoft)" stroke-width="4" stroke-linecap="round" />
     <line x1="206" y1="170" x2="262" y2="170" stroke="url(#blueGradientSoft)" stroke-width="4" stroke-linecap="round" />
 
-    <circle cx="118" cy="100" r="28" fill="#041827" stroke="url(#blueGradientMain)" stroke-width="4" />
-    <path d="M90 178c2-34 18-52 44-52s42 18 44 52v68H90v-68Z" fill="#051a2b" stroke="url(#blueGradientMain)" stroke-width="4" />
-    <path d="M136 182h56c17 0 30 13 30 30v34h-54l-22-23c-6-6-14-10-23-10H90" fill="#041827" stroke="url(#blueGradientSoft)" stroke-width="4" />
+    <circle cx="118" cy="100" r="28" fill="var(--il-fill-main)" stroke="url(#blueGradientMain)" stroke-width="4" />
+    <path d="M90 178c2-34 18-52 44-52s42 18 44 52v68H90v-68Z" fill="var(--il-fill-soft)" stroke="url(#blueGradientMain)" stroke-width="4" />
+    <path d="M136 182h56c17 0 30 13 30 30v34h-54l-22-23c-6-6-14-10-23-10H90" fill="var(--il-fill-main)" stroke="url(#blueGradientSoft)" stroke-width="4" />
   </g>
 
   <g class="ui-sparkles" stroke="url(#blueGradientSoft)" stroke-width="3" stroke-linecap="round">

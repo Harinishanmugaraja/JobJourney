@@ -2,6 +2,7 @@ const Application = require("../models/Application");
 const ApplicationStatus = require("../models/ApplicationStatus");
 const Role = require("../models/Role");
 const User = require("../models/User");
+const Job = require("../models/Job");
 
 const validStatuses = ["Applied", "Under Review", "Interview Scheduled", "Selected", "Rejected"];
 const validResumeExtensions = [".pdf", ".doc", ".docx"];
@@ -21,6 +22,10 @@ const toApplicationResponse = (doc) => {
     status: item.status_id?.status_name || null,
     resume: item.resume_url,
     resumeUrl: item.resume_url,
+    applicantName: item.applicant_name || null,
+    applicantEmail: item.applicant_email || null,
+    coverLetter: item.cover_letter || null,
+    jobId: item.job_id?.id || null,
     applicationDate: item.applied_date,
     userId: item.user_id?.id || null,
     userRole: item.user_id?.role_id?.role_name || null
@@ -29,12 +34,44 @@ const toApplicationResponse = (doc) => {
 
 const createApplication = async (req, res) => {
   try {
-    const { companyName, jobRole, resume, resumeUrl, applicationDate } = req.body;
+    const {
+      companyName,
+      jobRole,
+      resume,
+      resumeUrl,
+      applicationDate,
+      applicantName,
+      applicantEmail,
+      coverLetter,
+      jobId
+    } = req.body;
 
+    let resolvedCompanyName = companyName;
+    let resolvedJobRole = jobRole;
+    let resolvedJobRef;
     const resolvedResume = resumeUrl || resume;
 
-    if (!companyName || !jobRole || !resolvedResume || !applicationDate) {
+    if (!resolvedResume || !applicationDate) {
       return res.status(400).json({ message: "All fields are required." });
+    }
+
+    if (jobId !== undefined && jobId !== null) {
+      const numericJobId = Number(jobId);
+      if (Number.isNaN(numericJobId)) {
+        return res.status(400).json({ message: "Invalid job id." });
+      }
+
+      const targetJob = await Job.findOne({ id: numericJobId });
+      if (!targetJob) {
+        return res.status(404).json({ message: "Job not found." });
+      }
+      resolvedCompanyName = targetJob.companyName;
+      resolvedJobRole = targetJob.title;
+      resolvedJobRef = targetJob._id;
+    }
+
+    if (!resolvedCompanyName || !resolvedJobRole) {
+      return res.status(400).json({ message: "Company name and job role are required." });
     }
 
     if (!hasValidResume(resolvedResume)) {
@@ -57,20 +94,26 @@ const createApplication = async (req, res) => {
     }
 
     const created = await Application.create({
-      company_name: companyName,
-      job_role: jobRole,
+      company_name: resolvedCompanyName,
+      job_role: resolvedJobRole,
       status_id: defaultStatus._id,
       resume_url: resolvedResume,
+      applicant_name: applicantName || user.name,
+      applicant_email: applicantEmail || user.email,
+      cover_letter: coverLetter || "",
+      job_id: resolvedJobRef,
       applied_date: applied,
       user_id: user._id
     });
 
     const application = await Application.findById(created._id)
       .populate("status_id", "status_name")
+      .populate("job_id", "id title companyName")
       .populate({ path: "user_id", select: "id", populate: { path: "role_id", select: "role_name" } });
 
     return res.status(201).json(toApplicationResponse(application));
   } catch (error) {
+    console.error("[Applications] createApplication failed:", error);
     return res.status(500).json({ message: "Failed to create application.", error: error.message });
   }
 };
@@ -130,10 +173,12 @@ const getApplications = async (req, res) => {
     const applications = await Application.find(query)
       .sort({ applied_date: -1 })
       .populate("status_id", "status_name")
+      .populate("job_id", "id title companyName")
       .populate({ path: "user_id", select: "id", populate: { path: "role_id", select: "role_name" } });
 
     return res.json(applications.map(toApplicationResponse));
   } catch (error) {
+    console.error("[Applications] getApplications failed:", error);
     return res.status(500).json({ message: "Failed to fetch applications.", error: error.message });
   }
 };
@@ -191,10 +236,12 @@ const updateApplication = async (req, res) => {
 
     const updated = await Application.findById(application._id)
       .populate("status_id", "status_name")
+      .populate("job_id", "id title companyName")
       .populate({ path: "user_id", select: "id", populate: { path: "role_id", select: "role_name" } });
 
     return res.json(toApplicationResponse(updated));
   } catch (error) {
+    console.error("[Applications] updateApplication failed:", error);
     return res.status(500).json({ message: "Failed to update application.", error: error.message });
   }
 };
@@ -219,6 +266,7 @@ const deleteApplication = async (req, res) => {
     await Application.deleteOne({ _id: application._id });
     return res.json({ message: "Application removed successfully." });
   } catch (error) {
+    console.error("[Applications] deleteApplication failed:", error);
     return res.status(500).json({ message: "Failed to delete application.", error: error.message });
   }
 };

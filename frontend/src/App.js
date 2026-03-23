@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import { ThemeProvider } from "./context/ThemeContext";
 import LoginPage from "./pages/LoginPage";
 import RegistrationPage from "./pages/RegistrationPage";
 import JobSeekerDashboard from "./pages/JobSeekerDashboard";
@@ -9,8 +10,12 @@ import AdminDashboard from "./pages/AdminDashboard";
 import ApplicationPage from "./pages/ApplicationPage";
 import TrackingPage from "./pages/TrackingPage";
 import InterviewPage from "./pages/InterviewPage";
+import JobsPage from "./pages/JobsPage";
+import JobDetailsPage from "./pages/JobDetailsPage";
 import Toast from "./components/Toast";
+import ThemeToggleButton from "./components/ThemeToggleButton";
 import { getDashboardPathByRole } from "./utils/roles";
+import ProfilePage from "./pages/ProfilePage";
 
 const ProtectedRoute = ({ children }) => {
   const { user } = useAuth();
@@ -25,6 +30,15 @@ const RoleRoute = ({ allowedRoles, children }) => {
   return children;
 };
 
+const AuthPageRoute = ({ children, blockAdmin = false }) => {
+  const { user } = useAuth();
+
+  if (!user) return children;
+  if (blockAdmin && user.role === "admin") return <Navigate to="/dashboard/admin" replace />;
+
+  return <Navigate to={getDashboardPathByRole(user.role)} replace />;
+};
+
 const DashboardRedirect = () => {
   const { user } = useAuth();
   if (!user) return <Navigate to="/login" replace />;
@@ -37,8 +51,22 @@ const AppRoutes = () => {
   return (
     <>
       <Routes>
-        <Route path="/login" element={<LoginPage setToast={setToast} />} />
-        <Route path="/register" element={<RegistrationPage setToast={setToast} />} />
+        <Route
+          path="/login"
+          element={
+            <AuthPageRoute>
+              <LoginPage setToast={setToast} />
+            </AuthPageRoute>
+          }
+        />
+        <Route
+          path="/register"
+          element={
+            <AuthPageRoute blockAdmin>
+              <RegistrationPage setToast={setToast} />
+            </AuthPageRoute>
+          }
+        />
         <Route
           path="/dashboard"
           element={
@@ -52,7 +80,7 @@ const AppRoutes = () => {
           element={
             <ProtectedRoute>
               <RoleRoute allowedRoles={["jobseeker"]}>
-                <JobSeekerDashboard />
+                <JobSeekerDashboard setToast={setToast} />
               </RoleRoute>
             </ProtectedRoute>
           }
@@ -88,11 +116,31 @@ const AppRoutes = () => {
           }
         />
         <Route
+          path="/jobs"
+          element={
+            <ProtectedRoute>
+              <RoleRoute allowedRoles={["jobseeker"]}>
+                <JobsPage setToast={setToast} />
+              </RoleRoute>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/jobs/:jobId"
+          element={
+            <ProtectedRoute>
+              <RoleRoute allowedRoles={["jobseeker"]}>
+                <JobDetailsPage setToast={setToast} />
+              </RoleRoute>
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/tracking"
           element={
             <ProtectedRoute>
               <RoleRoute allowedRoles={["jobseeker"]}>
-                <TrackingPage />
+                <TrackingPage setToast={setToast} />
               </RoleRoute>
             </ProtectedRoute>
           }
@@ -102,22 +150,33 @@ const AppRoutes = () => {
           element={
             <ProtectedRoute>
               <RoleRoute allowedRoles={["jobseeker", "employer"]}>
-                <InterviewPage />
+                <InterviewPage setToast={setToast} />
               </RoleRoute>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <ProfilePage setToast={setToast} />
             </ProtectedRoute>
           }
         />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
+      <ThemeToggleButton />
       <Toast toast={toast} onClose={() => setToast(null)} />
     </>
   );
 };
 
 const App = () => (
-  <AuthProvider>
-    <AppRoutes />
-  </AuthProvider>
+  <ThemeProvider>
+    <AuthProvider>
+      <AppRoutes />
+    </AuthProvider>
+  </ThemeProvider>
 );
 
 export default App;

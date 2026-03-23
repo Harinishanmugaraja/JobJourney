@@ -74,6 +74,7 @@ const createInterview = async (req, res) => {
 
     return res.status(201).json(toInterviewResponse(interview));
   } catch (error) {
+    console.error("[Interviews] createInterview failed:", error);
     return res.status(500).json({ message: "Failed to schedule interview.", error: error.message });
   }
 };
@@ -99,6 +100,7 @@ const getInterviews = async (req, res) => {
 
     return res.json(interviews.map(toInterviewResponse));
   } catch (error) {
+    console.error("[Interviews] getInterviews failed:", error);
     return res.status(500).json({ message: "Failed to fetch interviews.", error: error.message });
   }
 };
@@ -120,6 +122,7 @@ const getInterviewById = async (req, res) => {
 
     return res.json(toInterviewResponse(interview));
   } catch (error) {
+    console.error("[Interviews] getInterviewById failed:", error);
     return res.status(500).json({ message: "Failed to fetch interview.", error: error.message });
   }
 };
@@ -166,6 +169,7 @@ const updateInterview = async (req, res) => {
 
     return res.json(toInterviewResponse(updated));
   } catch (error) {
+    console.error("[Interviews] updateInterview failed:", error);
     return res.status(500).json({ message: "Failed to update interview.", error: error.message });
   }
 };
@@ -185,6 +189,7 @@ const deleteInterview = async (req, res) => {
     await Interview.deleteOne({ _id: interview._id });
     return res.json({ message: "Interview deleted successfully." });
   } catch (error) {
+    console.error("[Interviews] deleteInterview failed:", error);
     return res.status(500).json({ message: "Failed to delete interview.", error: error.message });
   }
 };

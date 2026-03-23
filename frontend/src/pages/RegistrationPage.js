@@ -74,7 +74,6 @@ const RegistrationPage = ({ setToast }) => {
             >
               <option value="jobseeker">Job Seeker</option>
               <option value="employer">Employer</option>
-              <option value="admin">Admin</option>
             </select>
             <button className="btn" type="submit" disabled={loading}>
               {loading ? "Creating..." : "Register"}

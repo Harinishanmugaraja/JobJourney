@@ -6,6 +6,7 @@ import { getApplications } from "../services/applicationService";
 import { getJobs, deleteJob } from "../services/jobService";
 import { deleteUser, getUsers, toggleUserStatus } from "../services/userService";
 import Loader from "../components/Loader";
+import { NO_AVAILABLE_DETAILS_MESSAGE } from "../utils/messages";
 
 const AdminDashboard = ({ setToast }) => {
   const [users, setUsers] = useState([]);
@@ -21,9 +22,27 @@ const AdminDashboard = ({ setToast }) => {
         getJobs(),
         getApplications()
       ]);
+      console.log("[AdminDashboard] Users API response:", userData);
+      console.log("[AdminDashboard] Jobs API response:", jobData);
+      console.log("[AdminDashboard] Applications API response:", appData);
       setUsers(userData);
       setJobs(jobData);
       setApplications(appData);
+      if (!userData.length) {
+        console.warn("[AdminDashboard] No users returned from backend.");
+      }
+      if (!jobData.length) {
+        console.warn("[AdminDashboard] No jobs returned from backend.");
+      }
+      if (!appData.length) {
+        console.warn("[AdminDashboard] No applications returned from backend.");
+      }
+    } catch (error) {
+      console.error("[AdminDashboard] Failed to load dashboard data:", error);
+      setToast({ type: "error", message: "Unable to load admin dashboard details." });
+      setUsers([]);
+      setJobs([]);
+      setApplications([]);
     } finally {
       setLoading(false);
     }
@@ -34,21 +53,39 @@ const AdminDashboard = ({ setToast }) => {
   }, []);
 
   const onToggleUser = async (id) => {
-    await toggleUserStatus(id);
-    setToast({ type: "success", message: "User status updated" });
-    load();
+    try {
+      const { data } = await toggleUserStatus(id);
+      console.log("[AdminDashboard] Toggled user status:", data);
+      setToast({ type: "success", message: "User status updated" });
+      load();
+    } catch (error) {
+      console.error("[AdminDashboard] Failed to toggle user status:", error);
+      setToast({ type: "error", message: "Unable to update user status." });
+    }
   };
 
   const onDeleteUser = async (id) => {
-    await deleteUser(id);
-    setToast({ type: "success", message: "User deleted" });
-    load();
+    try {
+      await deleteUser(id);
+      console.log(`[AdminDashboard] Deleted user ${id}.`);
+      setToast({ type: "success", message: "User deleted" });
+      load();
+    } catch (error) {
+      console.error("[AdminDashboard] Failed to delete user:", error);
+      setToast({ type: "error", message: "Unable to delete user." });
+    }
   };
 
   const onDeleteJob = async (id) => {
-    await deleteJob(id);
-    setToast({ type: "success", message: "Job deleted" });
-    load();
+    try {
+      await deleteJob(id);
+      console.log(`[AdminDashboard] Deleted job ${id}.`);
+      setToast({ type: "success", message: "Job deleted" });
+      load();
+    } catch (error) {
+      console.error("[AdminDashboard] Failed to delete job:", error);
+      setToast({ type: "error", message: "Unable to delete job." });
+    }
   };
 
   const cards = [
@@ -104,7 +141,7 @@ const AdminDashboard = ({ setToast }) => {
               role: user.role,
               disabledLabel: user.disabled ? "Disabled" : "Active"
             }))}
-            emptyMessage="No users found."
+            emptyMessage={NO_AVAILABLE_DETAILS_MESSAGE}
           />
           <section className="panel">
             <h3>User Controls</h3>
@@ -138,7 +175,7 @@ const AdminDashboard = ({ setToast }) => {
                     ))}
                   {!users.filter((user) => user.role !== "admin").length && (
                     <tr>
-                      <td colSpan={4}>No non-admin users available.</td>
+                      <td colSpan={4}>{NO_AVAILABLE_DETAILS_MESSAGE}</td>
                     </tr>
                   )}
                 </tbody>
@@ -174,7 +211,7 @@ const AdminDashboard = ({ setToast }) => {
                   ))}
                   {!jobs.length && (
                     <tr>
-                      <td colSpan={5}>No job listings found.</td>
+                      <td colSpan={5}>{NO_AVAILABLE_DETAILS_MESSAGE}</td>
                     </tr>
                   )}
                 </tbody>

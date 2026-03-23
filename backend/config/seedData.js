@@ -1,6 +1,8 @@
 const Role = require("../models/Role");
 const ApplicationStatus = require("../models/ApplicationStatus");
 const InterviewMode = require("../models/InterviewMode");
+const User = require("../models/User");
+const bcrypt = require("bcryptjs");
 const getNextSequence = require("../utils/sequence");
 
 const repairNullIds = async (Model, counterKey) => {
@@ -19,6 +21,35 @@ const ensureExists = async (Model, query, payload) => {
   if (!existing) {
     await Model.create(payload);
   }
+};
+
+const ensureDefaultAdmin = async () => {
+  const adminEmail = (process.env.ADMIN_EMAIL || "admin@jobtracker.com").toLowerCase().trim();
+  const adminPassword = process.env.ADMIN_PASSWORD || "Admin@123";
+  const adminName = process.env.ADMIN_NAME || "System Admin";
+
+  const adminRole = await Role.findOne({ role_name: "admin" });
+  if (!adminRole) return;
+
+  const existingAdmin = await User.findOne({ email: adminEmail });
+  const hash = await bcrypt.hash(adminPassword, 10);
+
+  if (existingAdmin) {
+    existingAdmin.name = adminName;
+    existingAdmin.password = hash;
+    existingAdmin.role_id = adminRole._id;
+    existingAdmin.disabled = false;
+    await existingAdmin.save();
+    return;
+  }
+
+  await User.create({
+    name: adminName,
+    email: adminEmail,
+    password: hash,
+    role_id: adminRole._id,
+    disabled: false
+  });
 };
 
 const seedDefaults = async () => {
@@ -48,6 +79,8 @@ const seedDefaults = async () => {
   for (const mode_name of modes) {
     await ensureExists(InterviewMode, { mode_name }, { mode_name });
   }
+
+  await ensureDefaultAdmin();
 };
 
 module.exports = seedDefaults;
