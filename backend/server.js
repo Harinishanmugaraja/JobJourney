@@ -25,9 +25,6 @@ const io = new Server(server, {
 
 app.use(cors());
 app.use(express.json());
-app.get("/test", (req, res) => {
-  res.send("Test working ✅");
-});
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok", mode: "mongodb" });
 });
