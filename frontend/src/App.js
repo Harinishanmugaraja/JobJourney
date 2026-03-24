@@ -16,6 +16,8 @@ import Toast from "./components/Toast";
 import ThemeToggleButton from "./components/ThemeToggleButton";
 import { getDashboardPathByRole } from "./utils/roles";
 import ProfilePage from "./pages/ProfilePage";
+import NotificationsPage from "./pages/NotificationsPage";
+import { NotificationProvider } from "./context/NotificationContext";
 
 const ProtectedRoute = ({ children }) => {
   const { user } = useAuth();
@@ -163,6 +165,14 @@ const AppRoutes = () => {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/notifications"
+          element={
+            <ProtectedRoute>
+              <NotificationsPage setToast={setToast} />
+            </ProtectedRoute>
+          }
+        />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
       <ThemeToggleButton />
@@ -174,7 +184,9 @@ const AppRoutes = () => {
 const App = () => (
   <ThemeProvider>
     <AuthProvider>
-      <AppRoutes />
+      <NotificationProvider>
+        <AppRoutes />
+      </NotificationProvider>
     </AuthProvider>
   </ThemeProvider>
 );

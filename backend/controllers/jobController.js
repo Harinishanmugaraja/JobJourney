@@ -1,5 +1,9 @@
 const Job = require("../models/Job");
 const User = require("../models/User");
+const {
+  createNotificationsForUsers,
+  getJobSeekers
+} = require("../services/notificationService");
 
 const validStatuses = ["Active", "Closed"];
 const validJobTypes = ["Full Time", "Internship", "Remote"];
@@ -64,6 +68,13 @@ const createJob = async (req, res) => {
       logo: logo || "",
       status: "Active",
       postedBy: currentUser._id
+    });
+
+    const jobSeekers = await getJobSeekers();
+    await createNotificationsForUsers({
+      users: jobSeekers,
+      type: "job_posted",
+      message: `New job posted: ${job.title} at ${job.companyName} in ${job.location}.`
     });
 
     return res.status(201).json(toJobResponse(job));

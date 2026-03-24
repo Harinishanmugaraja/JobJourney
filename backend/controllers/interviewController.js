@@ -3,6 +3,7 @@ const Application = require("../models/Application");
 const ApplicationStatus = require("../models/ApplicationStatus");
 const InterviewMode = require("../models/InterviewMode");
 const User = require("../models/User");
+const { createNotificationForUser } = require("../services/notificationService");
 
 const toInterviewResponse = (doc) => {
   const interview = doc.toObject ? doc.toObject() : doc;
@@ -35,7 +36,7 @@ const createInterview = async (req, res) => {
       return res.status(400).json({ message: "Invalid application id." });
     }
 
-    const application = await Application.findOne({ id: appId });
+    const application = await Application.findOne({ id: appId }).populate("user_id", "_id id name email");
     if (!application) {
       return res.status(404).json({ message: "Application not found." });
     }
@@ -71,6 +72,21 @@ const createInterview = async (req, res) => {
     const interview = await Interview.findById(created._id)
       .populate("mode_id", "mode_name")
       .populate("application_id", "id company_name job_role");
+
+    if (application.user_id) {
+      const scheduleParts = [
+        new Date(interview.interview_date).toLocaleDateString("en-IN"),
+        interview.interview_time || null
+      ].filter(Boolean);
+
+      await createNotificationForUser({
+        user: application.user_id,
+        type: "interview",
+        message: `Interview scheduled for ${application.job_role} at ${application.company_name} on ${scheduleParts.join(
+          " "
+        )}.`
+      });
+    }
 
     return res.status(201).json(toInterviewResponse(interview));
   } catch (error) {

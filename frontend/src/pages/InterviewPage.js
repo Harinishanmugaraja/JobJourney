@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from "react";
 import DashboardLayout from "../components/DashboardLayout";
-import { getInterviews } from "../services/interviewService";
 import Loader from "../components/Loader";
+import PageHero from "../components/PageHero";
+import RecentActivityTable from "../components/RecentActivityTable";
+import { getInterviews } from "../services/interviewService";
 import { NO_AVAILABLE_DETAILS_MESSAGE } from "../utils/messages";
 
 const InterviewPage = ({ setToast }) => {
@@ -12,13 +14,8 @@ const InterviewPage = ({ setToast }) => {
     const load = async () => {
       try {
         const { data } = await getInterviews();
-        console.log("[InterviewPage] Interviews API response:", data);
         setInterviews(data);
-        if (!data.length) {
-          console.warn("[InterviewPage] No interviews returned from backend.");
-        }
       } catch (error) {
-        console.error("[InterviewPage] Failed to load interviews:", error);
         setToast?.({ type: "error", message: "Unable to load interviews." });
         setInterviews([]);
       } finally {
@@ -29,49 +26,40 @@ const InterviewPage = ({ setToast }) => {
   }, [setToast]);
 
   return (
-    <DashboardLayout title="Interview Schedule Page">
+    <DashboardLayout title="Interviews">
+      <PageHero
+        badge="Interview Planner"
+        title="Review scheduled conversations with a sharper visual structure."
+        description="Interview date, time, and meeting link data remain unchanged, but the experience is now easier to scan on desktop and mobile."
+        stats={[
+          { label: "Interview sessions", value: interviews.length, helper: "Fetched from backend" },
+          { label: "Linked meetings", value: interviews.filter((item) => item.meetingLink).length, helper: "Sessions with join links" }
+        ]}
+        visual={<div className="hero-visual-card"><div className="hero-visual-row"><div><strong>Scheduling view</strong><p className="section-empty-text">Keep upcoming meetings easy to review at a glance.</p></div><span className="mini-badge">{interviews.length} planned</span></div><div className="hero-mini-chart" /></div>}
+      />
       {loading ? (
         <Loader />
       ) : (
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Company</th>
-                <th>Interview Date</th>
-                <th>Interview Time</th>
-                <th>Meeting Link</th>
-              </tr>
-            </thead>
-            <tbody>
-              {interviews.map((item) => (
-                <tr key={item.id}>
-                  <td>{item.company || NO_AVAILABLE_DETAILS_MESSAGE}</td>
-                  <td>
-                    {item.interviewDate
-                      ? new Date(item.interviewDate).toLocaleDateString()
-                      : NO_AVAILABLE_DETAILS_MESSAGE}
-                  </td>
-                  <td>{item.interviewTime || NO_AVAILABLE_DETAILS_MESSAGE}</td>
-                  <td>
-                    {item.meetingLink ? (
-                      <a href={item.meetingLink} target="_blank" rel="noreferrer">
-                        Join Meeting
-                      </a>
-                    ) : (
-                      NO_AVAILABLE_DETAILS_MESSAGE
-                    )}
-                  </td>
-                </tr>
-              ))}
-              {!interviews.length && (
-                <tr>
-                  <td colSpan={4}>{NO_AVAILABLE_DETAILS_MESSAGE}</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+        <RecentActivityTable
+          title="Interview schedule"
+          subtitle="A refined list of interview sessions and meeting access links."
+          columns={[
+            { key: "company", label: "Company" },
+            { key: "date", label: "Interview Date" },
+            { key: "time", label: "Interview Time" },
+            { key: "link", label: "Meeting Link", type: "link", linkLabel: "Join meeting" }
+          ]}
+          rows={interviews.map((item) => ({
+            id: item.id,
+            company: item.company || item.companyName || NO_AVAILABLE_DETAILS_MESSAGE,
+            date: item.interviewDate ? new Date(item.interviewDate).toLocaleDateString() : NO_AVAILABLE_DETAILS_MESSAGE,
+            time: item.interviewTime || NO_AVAILABLE_DETAILS_MESSAGE,
+            link: item.meetingLink || ""
+          }))}
+          emptyTitle="No interviews scheduled"
+          emptyMessage="Interview records will appear here when they are created in the backend."
+          emptyIcon="calendar"
+        />
       )}
     </DashboardLayout>
   );

@@ -3,6 +3,7 @@ const ApplicationStatus = require("../models/ApplicationStatus");
 const Role = require("../models/Role");
 const User = require("../models/User");
 const Job = require("../models/Job");
+const { createNotificationForUser } = require("../services/notificationService");
 
 const validStatuses = ["Applied", "Under Review", "Interview Scheduled", "Selected", "Rejected"];
 const validResumeExtensions = [".pdf", ".doc", ".docx"];
@@ -190,7 +191,7 @@ const updateApplication = async (req, res) => {
       return res.status(400).json({ message: "Invalid application id." });
     }
 
-    const application = await Application.findOne({ id }).populate("user_id", "id");
+    const application = await Application.findOne({ id }).populate("user_id", "id name email");
 
     if (!application) {
       return res.status(404).json({ message: "Application not found." });
@@ -201,6 +202,7 @@ const updateApplication = async (req, res) => {
     }
 
     const payload = {};
+    const previousStatus = application.status_id;
 
     if (req.body.companyName !== undefined) payload.company_name = req.body.companyName;
     if (req.body.jobRole !== undefined) payload.job_role = req.body.jobRole;
@@ -238,6 +240,23 @@ const updateApplication = async (req, res) => {
       .populate("status_id", "status_name")
       .populate("job_id", "id title companyName")
       .populate({ path: "user_id", select: "id", populate: { path: "role_id", select: "role_name" } });
+
+    if (
+      req.body.status !== undefined &&
+      req.user.role !== "jobseeker" &&
+      String(previousStatus) !== String(updated.status_id?._id)
+    ) {
+      const targetUser = await User.findOne({ id: application.user_id?.id }).select("_id id name email");
+      if (targetUser) {
+        await createNotificationForUser({
+          user: targetUser,
+          type: "status_update",
+          message: `Your application for ${updated.jobRole || updated.job_id?.title || application.job_role} at ${
+            updated.companyName || updated.job_id?.companyName || application.company_name
+          } is now ${updated.status}.`
+        });
+      }
+    }
 
     return res.json(toApplicationResponse(updated));
   } catch (error) {

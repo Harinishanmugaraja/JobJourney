@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../components/DashboardLayout";
-import StatsWidget from "../components/StatsWidget";
+import Loader from "../components/Loader";
+import PageHero from "../components/PageHero";
 import RecentActivityTable from "../components/RecentActivityTable";
+import StatsWidget from "../components/StatsWidget";
 import { getApplications } from "../services/applicationService";
 import { getInterviews } from "../services/interviewService";
-import Loader from "../components/Loader";
 import { NO_AVAILABLE_DETAILS_MESSAGE } from "../utils/messages";
 
 const formatDate = (value) => (value ? new Date(value).toLocaleDateString() : NO_AVAILABLE_DETAILS_MESSAGE);
@@ -20,18 +21,9 @@ const JobSeekerDashboard = ({ setToast }) => {
     const loadData = async () => {
       try {
         const [appRes, intRes] = await Promise.all([getApplications(), getInterviews()]);
-        console.log("[JobSeekerDashboard] Applications API response:", appRes.data);
-        console.log("[JobSeekerDashboard] Interviews API response:", intRes.data);
         setApplications(appRes.data);
         setInterviews(intRes.data);
-        if (!appRes.data.length) {
-          console.warn("[JobSeekerDashboard] No applications returned from backend.");
-        }
-        if (!intRes.data.length) {
-          console.warn("[JobSeekerDashboard] No interviews returned from backend.");
-        }
       } catch (error) {
-        console.error("[JobSeekerDashboard] Failed to load dashboard data:", error);
         setToast?.({ type: "error", message: "Unable to load dashboard details." });
         setApplications([]);
         setInterviews([]);
@@ -42,11 +34,15 @@ const JobSeekerDashboard = ({ setToast }) => {
     loadData();
   }, [setToast]);
 
+  const interviewCount = applications.filter((item) => item.status === "Interview Scheduled").length;
+  const selectedCount = applications.filter((item) => item.status === "Selected").length;
+  const rejectedCount = applications.filter((item) => item.status === "Rejected").length;
+
   const cards = [
-    { label: "Total Applications", value: applications.length },
-    { label: "Interviews Scheduled", value: applications.filter((a) => a.status === "Interview Scheduled").length },
-    { label: "Offers Received", value: applications.filter((a) => a.status === "Selected").length },
-    { label: "Rejected Applications", value: applications.filter((a) => a.status === "Rejected").length }
+    { label: "Total Applications", value: applications.length, helper: "All tracked submissions", icon: "document", trend: `${applications.length || 0} total` },
+    { label: "Interviews", value: interviewCount, helper: "Scheduled interview stages", icon: "interviews", trend: `${interviewCount || 0} scheduled` },
+    { label: "Selected", value: selectedCount, helper: "Positive decisions received", icon: "check", trend: `${selectedCount || 0} offers` },
+    { label: "Rejected", value: rejectedCount, helper: "Roles closed out", icon: "tracking", trend: `${rejectedCount || 0} closed` }
   ];
 
   const recentApplications = applications
@@ -67,19 +63,17 @@ const JobSeekerDashboard = ({ setToast }) => {
     .slice(0, 5)
     .map((item) => ({
       id: item.id,
-      company: item.company,
+      company: item.company || item.companyName,
       date: formatDate(item.interviewDate),
       time: item.interviewTime || NO_AVAILABLE_DETAILS_MESSAGE,
       link: item.meetingLink || ""
     }));
 
-  const statusSummary = ["Applied", "Under Review", "Interview Scheduled", "Selected", "Rejected"].map(
-    (status) => ({
-      id: status,
-      status,
-      count: applications.filter((item) => item.status === status).length
-    })
-  );
+  const statusSummary = ["Applied", "Under Review", "Interview Scheduled", "Selected", "Rejected"].map((status) => ({
+    id: status,
+    status,
+    count: applications.filter((item) => item.status === status).length
+  }));
 
   return (
     <DashboardLayout title="Job Seeker Dashboard">
@@ -87,25 +81,54 @@ const JobSeekerDashboard = ({ setToast }) => {
         <Loader />
       ) : (
         <>
+          <PageHero
+            badge="Career Command Center"
+            title="Track every application with clarity."
+            description="Your dashboard highlights the current pipeline, upcoming interviews, and status movement from live backend records only."
+            stats={[
+              { label: "Applications in motion", value: applications.length, helper: "Across all tracked roles" },
+              { label: "Next interviews", value: upcomingInterviews.length, helper: "Scheduled from backend" }
+            ]}
+            actions={
+              <>
+                <button className="btn" type="button" onClick={() => navigate("/jobs")}>
+                  Browse jobs
+                </button>
+                <button className="btn btn-outline" type="button" onClick={() => navigate("/tracking")}>
+                  View tracking
+                </button>
+              </>
+            }
+            visual={
+              <div className="hero-visual-card">
+                <div className="hero-visual-row">
+                  <div>
+                    <strong>Pipeline health</strong>
+                    <p className="section-empty-text">A quick snapshot of your current momentum.</p>
+                  </div>
+                  <span className="mini-badge">{interviewCount} interviews</span>
+                </div>
+                <div className="hero-mini-chart" />
+              </div>
+            }
+          />
           <StatsWidget items={cards} />
-          <div className="actions-row actions-row-start">
-            <button className="btn" onClick={() => navigate("/jobs")}>
-              Browse Job Listings
-            </button>
-          </div>
           <RecentActivityTable
-            title="Recent Applications"
+            title="Recent applications"
+            subtitle="The latest submissions sorted by application date."
             columns={[
-              { key: "company", label: "Company" },
-              { key: "role", label: "Role" },
+              { key: "company", label: "Company", type: "strong", secondaryKey: "role" },
               { key: "appliedOn", label: "Applied On" },
               { key: "status", label: "Status", type: "status" }
             ]}
             rows={recentApplications}
-            emptyMessage={NO_AVAILABLE_DETAILS_MESSAGE}
+            emptyTitle="No applications recorded"
+            emptyMessage="Once you apply to jobs, your recent activity will appear here."
+            emptyIcon="document"
           />
           <RecentActivityTable
-            title="Upcoming Interviews"
+            title="Upcoming interviews"
+            subtitle="Scheduled interviews from your live interview feed."
             columns={[
               { key: "company", label: "Company" },
               { key: "date", label: "Date" },
@@ -113,10 +136,13 @@ const JobSeekerDashboard = ({ setToast }) => {
               { key: "link", label: "Meeting", type: "link", linkLabel: "Join" }
             ]}
             rows={upcomingInterviews}
-            emptyMessage={NO_AVAILABLE_DETAILS_MESSAGE}
+            emptyTitle="No interviews scheduled"
+            emptyMessage="Interview invites will surface here when the backend has upcoming sessions."
+            emptyIcon="interviews"
           />
           <RecentActivityTable
-            title="Application Status Tracking"
+            title="Status breakdown"
+            subtitle="A clean summary of how your applications are progressing."
             columns={[
               { key: "status", label: "Status", type: "status" },
               { key: "count", label: "Count" }

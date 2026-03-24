@@ -1,9 +1,9 @@
 import React from "react";
 import { useTheme } from "../context/ThemeContext";
+import Icon from "./Icon";
 
 const ThemeToggleButton = () => {
   const { theme, toggleTheme } = useTheme();
-  const icon = theme === "light" ? "\uD83C\uDF19" : "\u2600\uFE0F";
 
   return (
     <button
@@ -13,7 +13,7 @@ const ThemeToggleButton = () => {
       aria-label="Toggle theme"
       title="Toggle theme"
     >
-      <span aria-hidden="true">{icon}</span>
+      <Icon name={theme === "light" ? "moon" : "sun"} aria-hidden="true" />
     </button>
   );
 };

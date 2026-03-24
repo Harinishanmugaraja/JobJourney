@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import DashboardLayout from "../components/DashboardLayout";
 import Loader from "../components/Loader";
 import JobDetails from "../components/JobDetails";
+import EmptyState from "../components/EmptyState";
 import { getJobById } from "../services/jobService";
 import { createApplication } from "../services/applicationService";
 import { useAuth } from "../context/AuthContext";
@@ -75,9 +76,7 @@ const JobDetailsPage = ({ setToast }) => {
       ) : job ? (
         <JobDetails job={job} user={user} onApply={applyToJob} />
       ) : (
-        <section className="panel">
-          <p>Job not found.</p>
-        </section>
+        <EmptyState icon="jobs" title="Job not found" description="The selected job could not be loaded from the backend." />
       )}
     </DashboardLayout>
   );

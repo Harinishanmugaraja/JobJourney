@@ -11,7 +11,7 @@ const DashboardLayout = ({ title, children }) => {
       <Sidebar />
       <main className="main-content">
         <Navbar title={title} user={user} />
-        {children}
+        <div className="dashboard-shell">{children}</div>
       </main>
     </div>
   );

@@ -1,14 +1,10 @@
 import React from "react";
 import JobCard from "./JobCard";
-import { NO_AVAILABLE_DETAILS_MESSAGE } from "../utils/messages";
+import EmptyState from "./EmptyState";
 
 const JobGrid = ({ jobs, onOpen }) => {
   if (!jobs.length) {
-    return (
-      <section className="panel">
-        <p>{NO_AVAILABLE_DETAILS_MESSAGE}</p>
-      </section>
-    );
+    return <EmptyState icon="jobs" title="No active job listings" description="Active roles from your backend will appear here when they become available." />;
   }
 
   return (

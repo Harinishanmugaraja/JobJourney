@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from "react";
 import DashboardLayout from "../components/DashboardLayout";
-import StatsWidget from "../components/StatsWidget";
-import RecentActivityTable from "../components/RecentActivityTable";
-import { getApplications } from "../services/applicationService";
-import { getJobs, deleteJob } from "../services/jobService";
-import { deleteUser, getUsers, toggleUserStatus } from "../services/userService";
 import Loader from "../components/Loader";
-import { NO_AVAILABLE_DETAILS_MESSAGE } from "../utils/messages";
+import PageHero from "../components/PageHero";
+import RecentActivityTable from "../components/RecentActivityTable";
+import StatsWidget from "../components/StatsWidget";
+import { getApplications } from "../services/applicationService";
+import { deleteJob, getJobs } from "../services/jobService";
+import { deleteUser, getUsers, toggleUserStatus } from "../services/userService";
 
 const AdminDashboard = ({ setToast }) => {
   const [users, setUsers] = useState([]);
@@ -22,23 +22,10 @@ const AdminDashboard = ({ setToast }) => {
         getJobs(),
         getApplications()
       ]);
-      console.log("[AdminDashboard] Users API response:", userData);
-      console.log("[AdminDashboard] Jobs API response:", jobData);
-      console.log("[AdminDashboard] Applications API response:", appData);
       setUsers(userData);
       setJobs(jobData);
       setApplications(appData);
-      if (!userData.length) {
-        console.warn("[AdminDashboard] No users returned from backend.");
-      }
-      if (!jobData.length) {
-        console.warn("[AdminDashboard] No jobs returned from backend.");
-      }
-      if (!appData.length) {
-        console.warn("[AdminDashboard] No applications returned from backend.");
-      }
     } catch (error) {
-      console.error("[AdminDashboard] Failed to load dashboard data:", error);
       setToast({ type: "error", message: "Unable to load admin dashboard details." });
       setUsers([]);
       setJobs([]);
@@ -54,12 +41,10 @@ const AdminDashboard = ({ setToast }) => {
 
   const onToggleUser = async (id) => {
     try {
-      const { data } = await toggleUserStatus(id);
-      console.log("[AdminDashboard] Toggled user status:", data);
+      await toggleUserStatus(id);
       setToast({ type: "success", message: "User status updated" });
       load();
     } catch (error) {
-      console.error("[AdminDashboard] Failed to toggle user status:", error);
       setToast({ type: "error", message: "Unable to update user status." });
     }
   };
@@ -67,11 +52,9 @@ const AdminDashboard = ({ setToast }) => {
   const onDeleteUser = async (id) => {
     try {
       await deleteUser(id);
-      console.log(`[AdminDashboard] Deleted user ${id}.`);
       setToast({ type: "success", message: "User deleted" });
       load();
     } catch (error) {
-      console.error("[AdminDashboard] Failed to delete user:", error);
       setToast({ type: "error", message: "Unable to delete user." });
     }
   };
@@ -79,45 +62,16 @@ const AdminDashboard = ({ setToast }) => {
   const onDeleteJob = async (id) => {
     try {
       await deleteJob(id);
-      console.log(`[AdminDashboard] Deleted job ${id}.`);
       setToast({ type: "success", message: "Job deleted" });
       load();
     } catch (error) {
-      console.error("[AdminDashboard] Failed to delete job:", error);
       setToast({ type: "error", message: "Unable to delete job." });
     }
   };
 
-  const cards = [
-    {
-      label: "Total Users",
-      value: users.filter((user) => ["jobseeker", "employer"].includes(user.role)).length
-    },
-    { label: "Total Job Posts", value: jobs.length },
-    { label: "Total Applications", value: applications.length },
-    {
-      label: "System Activity Overview",
-      value: `${applications.filter((a) => a.status === "Interview Scheduled").length} Interviews`
-    }
-  ];
-
-  const reports = [
-    {
-      id: "selected",
-      metric: "Selected Candidates",
-      value: applications.filter((a) => a.status === "Selected").length
-    },
-    {
-      id: "rejected",
-      metric: "Rejected Candidates",
-      value: applications.filter((a) => a.status === "Rejected").length
-    },
-    {
-      id: "disabled",
-      metric: "Disabled Users",
-      value: users.filter((user) => user.disabled).length
-    }
-  ];
+  const standardUsers = users.filter((user) => ["jobseeker", "employer"].includes(user.role));
+  const disabledUsers = users.filter((user) => user.disabled).length;
+  const interviews = applications.filter((item) => item.status === "Interview Scheduled").length;
 
   return (
     <DashboardLayout title="Admin Dashboard">
@@ -125,12 +79,40 @@ const AdminDashboard = ({ setToast }) => {
         <Loader />
       ) : (
         <>
-          <StatsWidget items={cards} />
+          <PageHero
+            badge="Platform Oversight"
+            title="Keep users, jobs, and hiring activity under control."
+            description="The admin workspace now presents platform health, moderation actions, and reporting in a clearer production-style layout."
+            stats={[
+              { label: "Managed users", value: standardUsers.length, helper: "Job seekers and employers" },
+              { label: "Interview activity", value: interviews, helper: "Applications marked for interview" }
+            ]}
+            visual={
+              <div className="hero-visual-card">
+                <div className="hero-visual-row">
+                  <div>
+                    <strong>System overview</strong>
+                    <p className="section-empty-text">High-level activity from users, jobs, and applications.</p>
+                  </div>
+                  <span className="mini-badge">{disabledUsers} disabled</span>
+                </div>
+                <div className="hero-mini-chart" />
+              </div>
+            }
+          />
+          <StatsWidget
+            items={[
+              { label: "Total Users", value: standardUsers.length, helper: "Non-admin accounts", icon: "user", trend: `${disabledUsers} disabled` },
+              { label: "Job Posts", value: jobs.length, helper: "Current platform listings", icon: "jobs", trend: `${jobs.length} live records` },
+              { label: "Applications", value: applications.length, helper: "Tracked submissions", icon: "document", trend: `${interviews} interview stage` },
+              { label: "Selected Candidates", value: applications.filter((item) => item.status === "Selected").length, helper: "Successful outcomes", icon: "check", trend: `${applications.filter((item) => item.status === "Rejected").length} rejected` }
+            ]}
+          />
           <RecentActivityTable
-            title="Manage Users"
+            title="Manage users"
+            subtitle="Monitor role mix and account status at a glance."
             columns={[
-              { key: "name", label: "Name" },
-              { key: "email", label: "Email" },
+              { key: "name", label: "Name", type: "strong", secondaryKey: "email" },
               { key: "role", label: "Role" },
               { key: "disabledLabel", label: "Status" }
             ]}
@@ -141,90 +123,75 @@ const AdminDashboard = ({ setToast }) => {
               role: user.role,
               disabledLabel: user.disabled ? "Disabled" : "Active"
             }))}
-            emptyMessage={NO_AVAILABLE_DETAILS_MESSAGE}
+            emptyTitle="No users available"
+            emptyMessage="User records from the backend will appear here."
+            emptyIcon="user"
           />
-          <section className="panel">
-            <h3>User Controls</h3>
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>Role</th>
-                    <th>Status</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {users
-                    .filter((user) => user.role !== "admin")
-                    .map((user) => (
-                      <tr key={user.id}>
-                        <td>{user.name}</td>
-                        <td>{user.role}</td>
-                        <td>{user.disabled ? "Disabled" : "Active"}</td>
-                        <td className="action-cell">
-                          <button className="btn btn-outline" onClick={() => onToggleUser(user.id)}>
-                            {user.disabled ? "Enable" : "Disable"}
-                          </button>
-                          <button className="btn btn-outline" onClick={() => onDeleteUser(user.id)}>
-                            Delete
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  {!users.filter((user) => user.role !== "admin").length && (
-                    <tr>
-                      <td colSpan={4}>{NO_AVAILABLE_DETAILS_MESSAGE}</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </section>
-          <section className="panel">
-            <h3>Manage Job Listings</h3>
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Job Title</th>
-                    <th>Company</th>
-                    <th>Location</th>
-                    <th>Status</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {jobs.map((job) => (
-                    <tr key={job.id}>
-                      <td>{job.title}</td>
-                      <td>{job.companyName}</td>
-                      <td>{job.location}</td>
-                      <td>{job.status}</td>
-                      <td>
-                        <button className="btn btn-outline" onClick={() => onDeleteJob(job.id)}>
-                          Delete
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                  {!jobs.length && (
-                    <tr>
-                      <td colSpan={5}>{NO_AVAILABLE_DETAILS_MESSAGE}</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </section>
           <RecentActivityTable
-            title="Reports / Analytics"
+            title="User controls"
+            subtitle="Apply account moderation actions without leaving the dashboard."
+            columns={[
+              { key: "name", label: "User", type: "strong", secondaryKey: "role" },
+              { key: "status", label: "Status" },
+              { key: "action", label: "Actions" }
+            ]}
+            rows={users.filter((user) => user.role !== "admin").map((user) => ({
+              id: user.id,
+              name: user.name,
+              role: user.role,
+              status: user.disabled ? "Disabled" : "Active",
+              action: (
+                <div className="actions-row actions-row-start">
+                  <button className="btn btn-outline" type="button" onClick={() => onToggleUser(user.id)}>
+                    {user.disabled ? "Enable" : "Disable"}
+                  </button>
+                  <button className="btn btn-danger" type="button" onClick={() => onDeleteUser(user.id)}>
+                    Delete
+                  </button>
+                </div>
+              )
+            }))}
+            emptyTitle="No user actions available"
+            emptyMessage="Moderation controls will appear when there are users to manage."
+            emptyIcon="tracking"
+          />
+          <RecentActivityTable
+            title="Manage job listings"
+            subtitle="Review and remove job posts if needed."
+            columns={[
+              { key: "title", label: "Job", type: "strong", secondaryKey: "company" },
+              { key: "location", label: "Location" },
+              { key: "status", label: "Status" },
+              { key: "action", label: "Action" }
+            ]}
+            rows={jobs.map((job) => ({
+              id: job.id,
+              title: job.title,
+              company: job.companyName,
+              location: job.location,
+              status: job.status,
+              action: (
+                <button className="btn btn-danger" type="button" onClick={() => onDeleteJob(job.id)}>
+                  Delete
+                </button>
+              )
+            }))}
+            emptyTitle="No job listings found"
+            emptyMessage="Jobs from the backend will appear here when available."
+            emptyIcon="jobs"
+          />
+          <RecentActivityTable
+            title="Analytics snapshot"
+            subtitle="A concise view of platform outcomes."
             columns={[
               { key: "metric", label: "Metric" },
               { key: "value", label: "Value" }
             ]}
-            rows={reports}
+            rows={[
+              { id: "selected", metric: "Selected Candidates", value: applications.filter((item) => item.status === "Selected").length },
+              { id: "rejected", metric: "Rejected Candidates", value: applications.filter((item) => item.status === "Rejected").length },
+              { id: "disabled", metric: "Disabled Users", value: disabledUsers }
+            ]}
           />
         </>
       )}
