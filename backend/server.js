@@ -28,28 +28,6 @@ app.use(express.json());
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok", mode: "mongodb" });
 });
-const express = require("express");
-const {
-  createJob,
-  getJobs,
-  getJobById,
-  updateJob,
-  deleteJob
-} = require("../controllers/jobController");
-const authMiddleware = require("../middleware/authMiddleware");
-const roleMiddleware = require("../middleware/roleMiddleware");
-
-const router = express.Router();
-
-router.use(authMiddleware);
-router.get("/", getJobs);
-router.get("/:id", getJobById);
-router.post("/", roleMiddleware("employer", "admin"), createJob);
-router.put("/:id", roleMiddleware("employer", "admin"), updateJob);
-router.delete("/:id", roleMiddleware("employer", "admin"), deleteJob);
-
-module.exports = router;
-
 
 app.use("/api/auth", authRoutes);
 app.use("/api/applications", applicationRoutes);
