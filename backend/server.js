@@ -44,11 +44,8 @@ const roleMiddleware = require("../middleware/roleMiddleware");
 
 const router = express.Router();
 
-//router.use(authMiddleware);
+router.use(authMiddleware);
 router.get("/", getJobs);
-app.get("/test", (req, res) => {
-  res.send("Test working ✅");
-});
 router.get("/:id", getJobById);
 router.post("/", roleMiddleware("employer", "admin"), createJob);
 router.put("/:id", roleMiddleware("employer", "admin"), updateJob);
